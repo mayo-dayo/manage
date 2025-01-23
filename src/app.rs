@@ -296,16 +296,14 @@ impl App {
                     };
 
                     if confirmed {
-                        docker::remove_container(
+                        docker::remove_server_container(
                             //
                             &self.docker,
                             //
-                            &server_container.id,
+                            &server_container,
                         )
                         //
-                        .await
-                        //
-                        .context("failed to delete container")?;
+                        .await?;
 
                         let _ = self.term.clear_screen();
 

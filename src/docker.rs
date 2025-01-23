@@ -2,13 +2,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::{anyhow, Context, Result};
 
-use bollard::{
-    container::{self, *},
-    exec::*,
-    image::*,
-    models::*,
-    Docker,
-};
+use bollard::{container, container::*, exec::*, image::*, models::*, volume::*, Docker};
 
 use futures::StreamExt;
 
@@ -542,6 +536,48 @@ pub async fn remove_container(
         .remove_container(container_id, options)
         //
         .await?;
+
+    Ok(())
+}
+
+pub async fn remove_server_container(
+    //
+    docker: &Docker,
+    //
+    server_container: &ServerContainer,
+) -> Result<()> {
+    remove_container(
+        //
+        docker,
+        //
+        &server_container.id,
+    )
+    //
+    .await
+    //
+    .context("failed to remove the container")?;
+
+    let volume_name = format!(
+        //
+        "mayo-{}",
+        //
+        server_container.name
+    );
+
+    let options = Some(RemoveVolumeOptions { force: true });
+
+    docker
+        //
+        .remove_volume(
+            //
+            &volume_name,
+            //
+            options,
+        )
+        //
+        .await
+        //
+        .context("failed to remove the volume")?;
 
     Ok(())
 }
