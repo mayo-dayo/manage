@@ -43,7 +43,7 @@ impl App {
                 .context("failed to find existing server containers")?;
 
             let action = if containers.is_empty() {
-                let Some(server_container) = self
+                let Some(mut server_container) = self
                     //
                     .create_server_container()
                     //
@@ -52,7 +52,7 @@ impl App {
                     return Ok(());
                 };
 
-                self.select_server_container_action(&server_container)
+                self.select_server_container_action(&mut server_container)
                     //
                     .await?
             } else {
@@ -101,6 +101,8 @@ impl App {
             &self.docker,
             //
             &parameters,
+            //
+            None,
         )
         //
         .await
@@ -127,16 +129,16 @@ impl App {
         };
 
         match choice {
-            ServerContainerChoice::Selected(server_container) => {
+            ServerContainerChoice::Selected(mut server_container) => {
                 self.select_server_container_action(
                     //
-                    &server_container,
+                    &mut server_container,
                 )
                 .await
             }
 
             ServerContainerChoice::CreateNewServer => {
-                let Some(server_container) = self
+                let Some(mut server_container) = self
                     .create_server_container()
                     //
                     .await?
@@ -144,7 +146,7 @@ impl App {
                     return Ok(AppAction::GoBack);
                 };
 
-                self.select_server_container_action(&server_container)
+                self.select_server_container_action(&mut server_container)
                     //
                     .await
             }
@@ -157,7 +159,7 @@ impl App {
         //
         &self,
         //
-        server_container: &ServerContainer,
+        server_container: &mut ServerContainer,
     ) -> Result<AppAction> {
         loop {
             let status = docker::get_container_status(
@@ -266,6 +268,20 @@ impl App {
                     .context("failed to start container")?;
                 }
 
+                "Update" => {
+                    let new_server_container = docker::update_container(
+                        //
+                        &self.docker,
+                        //
+                        &server_container,
+                    )
+                    //
+                    .await
+                    //
+                    .context("failed to update container")?;
+
+                    *server_container = new_server_container;
+                }
                 "Delete" => {
                     let Some(confirmed) = inquire::confirm_delete_server_container(
                         //

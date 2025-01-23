@@ -27,6 +27,12 @@ pub struct ServerContainer {
     pub id: String,
 
     pub name: String,
+
+    pub crt_path: PathBuf,
+
+    pub key_path: PathBuf,
+
+    pub port: u16,
 }
 
 pub async fn find_existing_server_containers(
@@ -63,46 +69,64 @@ pub async fn find_existing_server_containers(
         //
         .await?;
 
-    let containers = container_summaries
-        //
-        .into_iter()
-        //
-        .filter_map(|container_summary| {
-            let ContainerSummary {
-                //
-                id,
-                //
-                labels,
-                //
-                ..
-            } = container_summary;
+    let mut containers = Vec::new();
 
+    for container_summary in container_summaries {
+        let ContainerSummary {
+            //
+            id,
+            //
+            labels,
+            //
+            ..
+        } = container_summary;
+
+        if let (
+            //
+            Some(id),
+            //
+            Some(mut labels),
+        ) = (id, labels)
+        {
             if let (
                 //
-                Some(id),
+                Some(name),
                 //
-                Some(mut labels),
-            ) =
+                Some(crt_path_str),
                 //
-                (
-                    id, //
-                    labels,
-                )
-            {
-                if let Some(name) = labels.remove("name") {
-                    return Some(ServerContainer {
-                        //
+                Some(key_path_str),
+                //
+                Some(port_str),
+            ) = (
+                //
+                labels.remove("name"),
+                //
+                labels.remove("crt_path"),
+                //
+                labels.remove("key_path"),
+                //
+                labels.remove("port"),
+            ) {
+                let crt_path = PathBuf::from(crt_path_str);
+
+                let key_path = PathBuf::from(key_path_str);
+
+                if let Ok(port) = port_str.parse::<u16>() {
+                    containers.push(ServerContainer {
                         id,
-                        //
+
                         name,
+
+                        crt_path,
+
+                        key_path,
+
+                        port,
                     });
                 }
             }
-
-            None
-        })
-        //
-        .collect();
+        }
+    }
 
     Ok(containers)
 }
@@ -241,10 +265,13 @@ pub struct ServerContainerParameters {
 
     pub port: u16,
 }
+
 pub async fn create_server_container(
     docker: &Docker,
 
     parameters: &ServerContainerParameters,
+
+    name: Option<&str>,
 ) -> Result<ServerContainer> {
     let ServerContainerParameters {
         crt_path,
@@ -254,11 +281,14 @@ pub async fn create_server_container(
         port,
     } = parameters;
 
-    let name = names::Generator::default()
+    let name = name.map(ToString::to_string).unwrap_or_else(|| {
         //
-        .next()
-        //
-        .unwrap();
+        names::Generator::default()
+            //
+            .next()
+            //
+            .unwrap()
+    });
 
     let mut labels = HashMap::new();
 
@@ -274,6 +304,27 @@ pub async fn create_server_container(
         "version".to_string(),
         //
         VERSION.to_string(),
+    );
+
+    labels.insert(
+        //
+        "crt_path".to_string(),
+        //
+        crt_path.to_string_lossy().into_owned(),
+    );
+
+    labels.insert(
+        //
+        "key_path".to_string(),
+        //
+        key_path.to_string_lossy().into_owned(),
+    );
+
+    labels.insert(
+        //
+        "port".to_string(),
+        //
+        port.to_string(),
     );
 
     let env = vec![
@@ -381,6 +432,15 @@ pub async fn create_server_container(
 
             //
             name,
+
+            //
+            crt_path: crt_path.clone(),
+
+            //
+            key_path: key_path.clone(),
+
+            //
+            port: *port,
         },
     )
 }
@@ -846,4 +906,48 @@ database
         }
         StartExecResults::Detached => Err(anyhow!("exec process detached")),
     }
+}
+
+pub async fn update_container(
+    //
+    docker: &Docker,
+    //
+    server_container: &ServerContainer,
+) -> Result<ServerContainer> {
+    remove_container(
+        //
+        docker,
+        //
+        &server_container.id,
+    )
+    //
+    .await?;
+
+    pull_server_image(
+        //
+        docker,
+    )
+    //
+    .await?;
+
+    let parameters = ServerContainerParameters {
+        crt_path: server_container.crt_path.clone(),
+
+        key_path: server_container.key_path.clone(),
+
+        port: server_container.port,
+    };
+
+    let new_server_container = create_server_container(
+        //
+        docker,
+        //
+        &parameters,
+        //
+        Some(&server_container.name),
+    )
+    //
+    .await?;
+
+    Ok(new_server_container)
 }

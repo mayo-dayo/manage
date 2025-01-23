@@ -164,6 +164,8 @@ pub fn get_server_container_actions(
 ) -> Vec<String> {
     let mut options = vec![];
 
+    options.push("Update".to_string());
+
     options.push("View logs".to_string());
 
     match status {
