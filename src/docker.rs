@@ -12,7 +12,7 @@ use serde::Deserialize;
 
 const IMAGE: &str = "ghcr.io/mayo-dayo/app";
 
-const VERSION: &str = "0.1";
+const VERSION: &str = "0.2";
 
 const DATA_STORAGE_FOLDER_PATH: &str = "/mayo/.data";
 
