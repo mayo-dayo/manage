@@ -323,13 +323,11 @@ pub async fn create_server_container(
 
     let env = vec![
         //
-        "HOST=0.0.0.0".to_string(),
-        //
-        format!("PORT={port}"),
+        format!("BUN_PORT={port}"),
         //
         format!("MAYO_DATA_PATH={DATA_STORAGE_FOLDER_PATH}"),
         //
-        format!("TLS_CERT_PATH={DATA_STORAGE_FOLDER_PATH}/crt.pem"),
+        format!("TLS_CRT_PATH={DATA_STORAGE_FOLDER_PATH}/crt.pem"),
         //
         format!("TLS_KEY_PATH={DATA_STORAGE_FOLDER_PATH}/key.pem"),
     ];
@@ -651,15 +649,14 @@ pub async fn create_invite(
     let script = format!(
         r#"
 import {{ Database }} from "bun:sqlite";
-
 const database =
   //
-  new Database("{DATA_STORAGE_FOLDER_PATH}/db.sqlite");
-
+  new Database(
+    "{DATA_STORAGE_FOLDER_PATH}/db.sqlite"
+  );
 const id =
   //
   Bun.randomUUIDv7();
-
 database
   //
   .query(`
@@ -694,7 +691,6 @@ database
     //
     {perms}
   );
-
 console.write(
   id
 );
