@@ -1,6 +1,6 @@
 use crate::mayo::Mayo;
-use crate::server::Server;
 use crate::parameters::Parameters;
+use crate::server::Server;
 
 use anyhow::*;
 
@@ -25,23 +25,23 @@ pub async fn ls() -> Result<()> {
 
         table
             //
-            .load_preset(presets::UTF8_FULL)
+            .load_preset(presets::NOTHING)
             //
             .set_content_arrangement(ContentArrangement::Dynamic)
             //
             .set_header(vec![
                 //
-                "name",
+                "NAME",
                 //
-                "version",
+                "VERSION",
                 //
-                "state",
+                "STATE",
                 //
-                "port",
+                "PORT",
                 //
-                "authentication",
+                "AUTHENTICATION",
                 //
-                "tls",
+                "TLS",
             ]);
 
         servers.sort_unstable();
