@@ -14,13 +14,13 @@ where
 }
 
 fn is_compatible_app_version(version: &Version) -> bool {
-    // ^0.2
+    // ^0.3
     const COMPARATOR: Comparator = Comparator {
         op: Op::Caret,
 
         major: 0,
 
-        minor: Some(2),
+        minor: Some(3),
 
         patch: None,
 
