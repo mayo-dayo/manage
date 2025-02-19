@@ -67,45 +67,71 @@ impl Mayo {
 
         let multi_progress = MultiProgress::new();
 
-        let mut layers = HashMap::<String, ProgressBar>::default();
+        let mut layers = HashMap::new();
 
         while let Some(message_result) = stream.next().await {
             let CreateImageInfo {
+                //
                 id,
-
-                status,
-
+                //
                 progress_detail,
+                //
+                status,
+                //
                 ..
             } = message_result
                 //
                 .context("failed to read a message")?;
 
-            if let Some(id) = id {
+            if let Some(layer_id) = id {
                 let progress_bar = layers
                     //
-                    .entry(id.clone())
+                    .entry(layer_id.clone())
                     //
                     .or_insert_with(|| {
-                        let progress_bar = ProgressBar::new(0);
+                        let progress_bar = multi_progress.add(ProgressBar::new(0));
 
-                        progress_bar.set_style(
-                            ProgressStyle::with_template(
-                                "{msg} [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({percent}%)",
-                            )
-                            //
-                            .unwrap()
-                            //
-                            .progress_chars("##-"),
-                        );
+                        progress_bar.set_style(ProgressStyle::with_template("{msg}").unwrap());
 
-                        progress_bar.set_message(id.clone());
+                        progress_bar.set_message(layer_id.clone());
 
-                        multi_progress.add(progress_bar)
+                        progress_bar
                     });
 
+                if let Some(progress_detail) = progress_detail {
+                    if let (
+                        //
+                        Some(current),
+                        //
+                        Some(total),
+                    ) = (
+                        //
+                        progress_detail.current,
+                        //
+                        progress_detail.total,
+                    ) {
+                        if total > 0 {
+                            let total: u64 = total.try_into().unwrap();
+
+                            if progress_bar.length().unwrap() != total {
+                                let template = "{msg} [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({percent}%)";
+
+                                let style = ProgressStyle::with_template(template).unwrap().progress_chars("##-");
+
+                                progress_bar.set_style(style);
+
+                                progress_bar.set_length(total);
+                            }
+
+                            if current >= 0 {
+                                progress_bar.set_position(current.try_into().unwrap());
+                            }
+                        }
+                    }
+                }
+
                 if let Some(status) = status {
-                    let message = format!("{id}: {status}");
+                    let message = format!("{}: {}", layer_id, status);
 
                     if let "Download complete" | "Pull complete" | "Already exists" = status.as_str() {
                         progress_bar.finish_with_message(message);
@@ -113,24 +139,10 @@ impl Mayo {
                         progress_bar.set_message(message);
                     }
                 }
-
-                if let Some(progress_detail) = progress_detail {
-                    if let Some(total) = progress_detail.total {
-                        progress_bar.set_length(total.try_into().unwrap());
-                    }
-
-                    if let Some(current) = progress_detail.current {
-                        progress_bar.set_position(current.try_into().unwrap());
-                    }
-                }
             }
         }
 
-        multi_progress
-            //
-            .clear()
-            //
-            .context("failed to clear multi progres")?;
+        let _ = multi_progress.clear();
 
         Ok(())
     }
