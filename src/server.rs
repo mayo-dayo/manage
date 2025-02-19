@@ -1,3 +1,4 @@
+use crate::labels::*;
 use crate::parameters::Parameters;
 
 use std::cmp::Ordering;
@@ -59,7 +60,15 @@ impl TryFrom<ContainerSummary> for Server {
 
         let parameters = labels
             //
-            .map(|labels| Parameters::try_from(labels).ok())
+            .map(|labels| {
+                labels
+                    //
+                    .get(LABEL_KEY_PARAMETERS)
+                    //
+                    .map(|value| Parameters::try_from(value.as_str()).ok())
+                    //
+                    .flatten()
+            })
             //
             .flatten()
             //

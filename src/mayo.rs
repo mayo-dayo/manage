@@ -1,7 +1,7 @@
 use crate::labels::*;
+use crate::parameters::Parameters;
 use crate::registry;
 use crate::server::Server;
-use crate::parameters::Parameters;
 use crate::versioning;
 
 use std::collections::HashMap;

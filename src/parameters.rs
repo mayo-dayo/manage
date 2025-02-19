@@ -1,8 +1,6 @@
-use crate::labels::*;
 use crate::versioning;
 
 use std::cmp::Ordering;
-use std::collections::HashMap;
 use std::fmt;
 use std::fs;
 
@@ -36,19 +34,11 @@ pub struct Parameters {
     pub tls: Tls,
 }
 
-impl TryFrom<HashMap<String, String>> for Parameters {
+impl<'a> TryFrom<&'a str> for Parameters {
     type Error = ();
 
-    fn try_from(labels: HashMap<String, String>) -> Result<Self, Self::Error> {
-        labels
-            //
-            .get(LABEL_KEY_PARAMETERS)
-            //
-            .map(|value| serde_json::from_str::<Parameters>(value).ok())
-            //
-            .flatten()
-            //
-            .ok_or(())
+    fn try_from(value: &'a str) -> Result<Self, Self::Error> {
+        serde_json::from_str::<Parameters>(value).map_err(|_| ())
     }
 }
 
