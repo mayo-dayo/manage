@@ -8,8 +8,8 @@ use anyhow::*;
 
 use inquire::Confirm;
 use inquire::CustomType;
+use inquire::Text;
 use inquire::error::CustomUserError;
-use inquire::parser::CustomTypeParser;
 use inquire::validator::Validation;
 
 use names::Generator;
@@ -210,7 +210,7 @@ impl fmt::Display for Tls {
 
 impl Tls {
     pub fn inquire() -> Result<Option<Self>> {
-        let Some(confirmed) = Confirm::new("Would you like the server to use TLS?")
+        let Some(confirmed) = Confirm::new("Would you like to use TLS?")
             //
             .with_default(true)
             //
@@ -225,48 +225,43 @@ impl Tls {
         let mut result = Self(None);
 
         if confirmed {
-            let file_content_parser: CustomTypeParser<String> = &|file_path| {
-                fs::read_to_string(
-                    //
-                    file_path,
-                )
-                //
-                .map_err(|_| ())
-            };
-
-            let crt_validator = |input: &String| -> ::std::result::Result<Validation, CustomUserError> {
+            let crt_validator = |input: &str| -> ::std::result::Result<Validation, CustomUserError> {
                 ::std::result::Result::Ok(
-                    //
-                    rustls_pemfile::read_one_from_slice(
+                    fs::read(input)
                         //
-                        input.as_bytes(),
-                    )
-                    //
-                    .map(|item| {
-                        if let Some((
+                        .map(|bytes| {
+                            rustls_pemfile::read_one_from_slice(&bytes)
+                                //
+                                .map(|item| {
+                                    if let Some((
+                                        //
+                                        X509Certificate(_),
+                                        //
+                                        _,
+                                    )) = item
+                                    {
+                                        Validation::Valid
+                                    } else {
+                                        Validation::Invalid("Not a certificate 😣".into())
+                                    }
+                                })
+                                //
+                                .unwrap_or_else(|_| {
+                                    //
+                                    Validation::Invalid("Not a PEM file 😵".into())
+                                })
+                        })
+                        //
+                        .unwrap_or_else(|_| {
                             //
-                            X509Certificate(_),
-                            //
-                            _,
-                        )) = item
-                        {
-                            Validation::Valid
-                        } else {
-                            Validation::Invalid("Not a certificate 😣".into())
-                        }
-                    })
-                    //
-                    .unwrap_or_else(|_| Validation::Invalid("Not a PEM file 😵".into())),
+                            Validation::Invalid("Failed read from this file 😵‍💫".into())
+                        }),
                 )
             };
 
-            let Some(crt) = CustomType::<String>::new("Please enter the path to your certificate:")
-                //
-                .with_parser(file_content_parser)
+            let Some(crt) = Text::new("Please enter the path to your certificate:")
                 //
                 .with_validator(crt_validator)
-                //
-                .with_error_message("Couldn't read from this file 😵‍💫")
                 //
                 .prompt_skippable()
                 //
@@ -276,39 +271,43 @@ impl Tls {
                 return Ok(None);
             };
 
-            let key_validator = |input: &String| -> ::std::result::Result<Validation, CustomUserError> {
+            let key_validator = |input: &str| -> ::std::result::Result<Validation, CustomUserError> {
                 ::std::result::Result::Ok(
-                    //
-                    rustls_pemfile::read_one_from_slice(
+                    fs::read(input)
                         //
-                        input.as_bytes(),
-                    )
-                    //
-                    .map(|item| {
-                        if let Some((
+                        .map(|bytes| {
+                            rustls_pemfile::read_one_from_slice(&bytes)
+                                //
+                                .map(|item| {
+                                    if let Some((
+                                        //
+                                        Pkcs1Key(_) | Pkcs8Key(_) | Sec1Key(_),
+                                        //
+                                        _,
+                                    )) = item
+                                    {
+                                        Validation::Valid
+                                    } else {
+                                        Validation::Invalid("Not a private key 😣".into())
+                                    }
+                                })
+                                //
+                                .unwrap_or_else(|_| {
+                                    //
+                                    Validation::Invalid("Not a PEM file 😵".into())
+                                })
+                        })
+                        //
+                        .unwrap_or_else(|_| {
                             //
-                            Pkcs1Key(_) | Pkcs8Key(_) | Sec1Key(_),
-                            //
-                            _,
-                        )) = item
-                        {
-                            Validation::Valid
-                        } else {
-                            Validation::Invalid("Not a private key 😣".into())
-                        }
-                    })
-                    //
-                    .unwrap_or_else(|_| Validation::Invalid("Not a PEM file 😵".into())),
+                            Validation::Invalid("Failed to read from this file 😵‍💫".into())
+                        }),
                 )
             };
 
-            let Some(key) = CustomType::<String>::new("Please enter the path to your private key:")
-                //
-                .with_parser(file_content_parser)
+            let Some(key) = Text::new("Please enter the path to your private key:")
                 //
                 .with_validator(key_validator)
-                //
-                .with_error_message("Couldn't read from this file 😵‍💫 Does it exist 🤔")
                 //
                 .prompt_skippable()
                 //
@@ -318,7 +317,16 @@ impl Tls {
                 return Ok(None);
             };
 
-            result = Self(Some((crt, key)));
+            result = Self(Some((
+                //
+                fs::read_to_string(crt)
+                    //
+                    .context("failed to read the certificate")?,
+                //
+                fs::read_to_string(key)
+                    //
+                    .context("failed to read the private key")?,
+            )));
         }
 
         Ok(Some(result))
