@@ -277,7 +277,7 @@ impl Mayo {
         let mounts = vec![Mount {
             target: Some(MAYO_DATA_PATH.to_string()),
 
-            source: Some(format!("mayo-{name}-volume")),
+            source: Some(format!("mayo-{name}")),
 
             typ: Some(MountTypeEnum::VOLUME),
 
