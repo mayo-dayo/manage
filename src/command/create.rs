@@ -1,5 +1,5 @@
 use crate::mayo::Mayo;
-use crate::server::parameters::Parameters;
+use crate::parameters::Parameters;
 
 use anyhow::*;
 
