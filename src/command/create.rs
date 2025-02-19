@@ -4,11 +4,11 @@ use crate::server::parameters::Parameters;
 use anyhow::*;
 
 pub async fn create() -> Result<()> {
+    let mayo = Mayo::try_new()?;
+
     let Some(parameters) = Parameters::inquire().await? else {
         return Ok(());
     };
-
-    let mayo = Mayo::try_new()?;
 
     let container_id = mayo
         //
