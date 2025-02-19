@@ -73,7 +73,7 @@ pub fn current_cli_version() -> Version {
 
         minor: 1,
 
-        patch: 0,
+        patch: 1,
 
         pre: Prerelease::EMPTY,
 
