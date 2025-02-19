@@ -355,7 +355,7 @@ pub mod parameters {
                     //
                     .with_validator(crt_validator)
                     //
-                    .with_error_message("Couldn't to read from this file 😵‍💫")
+                    .with_error_message("Couldn't read from this file 😵‍💫")
                     //
                     .prompt_skippable()
                     //
@@ -397,7 +397,7 @@ pub mod parameters {
                     //
                     .with_validator(key_validator)
                     //
-                    .with_error_message("Couldn't to read from this file 😵‍💫 Does it exist 🤔")
+                    .with_error_message("Couldn't read from this file 😵‍💫 Does it exist 🤔")
                     //
                     .prompt_skippable()
                     //
