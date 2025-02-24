@@ -72,13 +72,9 @@ impl Parameters {
 
         Ok(Some(Self {
             name,
-
             version,
-
             port,
-
             authentication,
-
             tls,
         }))
     }

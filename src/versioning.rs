@@ -17,13 +17,9 @@ fn is_compatible_app_version(version: &Version) -> bool {
     // ^0.4
     const COMPARATOR: Comparator = Comparator {
         op: Op::Caret,
-
         major: 0,
-
         minor: Some(4),
-
         patch: None,
-
         pre: Prerelease::EMPTY,
     };
 
@@ -70,13 +66,9 @@ pub fn current_cli_version() -> Version {
     // 0.1.3
     Version {
         major: 0,
-
         minor: 1,
-
         patch: 3,
-
         pre: Prerelease::EMPTY,
-
         build: BuildMetadata::EMPTY,
     }
 }
@@ -85,13 +77,9 @@ pub fn is_compatible_cli_version(version: &Version) -> bool {
     // ^0.1
     const COMPARATOR: Comparator = Comparator {
         op: Op::Caret,
-
         major: 0,
-
         minor: Some(1),
-
         patch: None,
-
         pre: Prerelease::EMPTY,
     };
 

@@ -1,11 +1,11 @@
+use crate::invite::Invite;
 use crate::mayo::Mayo;
-use crate::versioning;
 
 use anyhow::*;
 
 use inquire::Select;
 
-pub async fn update() -> Result<()> {
+pub async fn create() -> Result<()> {
     let mayo = Mayo::try_new()?;
 
     let mut servers = mayo
@@ -22,21 +22,7 @@ pub async fn update() -> Result<()> {
         return Ok(());
     }
 
-    let latest_version = versioning::get_latest_compatible_app_version()
-        //
-        .await
-        //
-        .context("failed to get the latest app version")?;
-
-    servers.retain(|server| server.parameters.version < latest_version);
-
     servers.sort_unstable();
-
-    if servers.is_empty() {
-        println!("All servers are up-to-date 🙂");
-
-        return Ok(());
-    }
 
     let Some(server) = Select::new(
         //
@@ -53,16 +39,15 @@ pub async fn update() -> Result<()> {
         return Ok(());
     };
 
-    mayo.update_server(
+    let Some(invite) = Invite::inquire()? else {
+        return Ok(());
+    };
+
+    mayo.create_invite(server, invite)
         //
-        server,
+        .await
         //
-        latest_version,
-    )
-    //
-    .await
-    //
-    .context("failed to update the server")?;
+        .context("failed to create an invite")?;
 
     Ok(())
 }

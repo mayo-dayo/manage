@@ -2,8 +2,7 @@ use anyhow::*;
 
 use clap::Parser;
 
-use manage::cli::Cli;
-use manage::cli::Command;
+use manage::cli::*;
 use manage::command::*;
 
 #[tokio::main(flavor = "current_thread")]
@@ -16,5 +15,9 @@ async fn main() -> Result<()> {
         Command::Create => create::create().await,
 
         Command::Update => update::update().await,
+
+        Command::Invite(Invite { command }) => match command {
+            InviteCommand::Create => invite::create::create().await,
+        },
     }
 }

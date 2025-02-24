@@ -1,3 +1,4 @@
+use crate::invite::Invite;
 use crate::labels::*;
 use crate::parameters::Parameters;
 use crate::registry;
@@ -12,6 +13,7 @@ use anyhow::*;
 use bollard::Docker;
 use bollard::container;
 use bollard::container::*;
+use bollard::exec::*;
 use bollard::image::CreateImageOptions;
 use bollard::image::ListImagesOptions;
 use bollard::models::*;
@@ -153,9 +155,7 @@ impl Mayo {
 
         let options = ListImagesOptions {
             all: false,
-
             filters,
-
             digests: false,
         };
 
@@ -241,13 +241,9 @@ impl Mayo {
 
         let Parameters {
             name,
-
             version: _,
-
             port,
-
             authentication,
-
             tls,
         } = parameters;
 
@@ -292,7 +288,6 @@ impl Mayo {
 
             restart_policy: Some(RestartPolicy {
                 name: Some(RestartPolicyNameEnum::UNLESS_STOPPED),
-
                 maximum_retry_count: None,
             }),
 
@@ -301,19 +296,14 @@ impl Mayo {
 
         let config = container::Config {
             image: Some(image_id),
-
             env: Some(env),
-
             labels: Some(labels),
-
             host_config: Some(host_config),
-
             ..Default::default()
         };
 
         let options = CreateContainerOptions {
             name: format!("mayo-{name}"),
-
             ..Default::default()
         };
 
@@ -414,7 +404,11 @@ impl Mayo {
             //
             "Updated {} from {} to {} 🎉",
             //
-            parameters.name, old_version, parameters.version
+            parameters.name,
+            //
+            old_version,
+            //
+            parameters.version
         );
 
         Ok(())
@@ -429,11 +423,8 @@ impl Mayo {
 
             let options = ListContainersOptions {
                 all: true,
-
                 limit: None,
-
                 size: false,
-
                 filters,
             };
 
@@ -569,5 +560,73 @@ impl Mayo {
             .collect::<Vec<_>>();
 
         Ok(servers)
+    }
+
+    pub async fn create_invite(&self, server: Server, invite: Invite) -> Result<()> {
+        let Invite { uses, perms } = invite;
+
+        let uses = match uses {
+            Some(0) | None => "null".to_string(),
+
+            Some(n) => n.to_string(),
+        };
+
+        let script = format!(
+            r#"
+            import {{Database}} from 'bun:sqlite';
+
+            import path from 'node:path';
+
+            const db = new Database(path.join(Bun.env.MAYO_DATA_PATH, 'db.sqlite'));
+
+            const id = Bun.randomUUIDv7();
+
+            db.prepare('insert into invites (id, uses, perms) values (?1, ?2, ?3)').run(id, {uses}, {perms});
+
+            console.write(id);
+        "#
+        );
+
+        let options = CreateExecOptions {
+            cmd: Some(vec!["bun", "-e", &script]),
+
+            attach_stdout: Some(true),
+
+            attach_stderr: Some(true),
+
+            ..Default::default()
+        };
+
+        let exec = self
+            .docker
+            //
+            .create_exec(&server.id, options)
+            //
+            .await
+            //
+            .context("failed to create exec")?;
+
+        let result = self
+            .docker
+            //
+            .start_exec(&exec.id, None)
+            //
+            .await
+            //
+            .context("failed to start exec")?;
+
+        if let StartExecResults::Attached { mut output, .. } = result {
+            while let Some(result) = output.next().await {
+                match result.context("failed to read exec output")? {
+                    LogOutput::StdOut { message } => println!("{}", String::from_utf8_lossy(&message)),
+
+                    LogOutput::StdErr { message } => eprintln!("{}", String::from_utf8_lossy(&message)),
+
+                    _ => (),
+                }
+            }
+        }
+
+        Ok(())
     }
 }

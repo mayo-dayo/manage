@@ -49,17 +49,12 @@ pub async fn ls() -> Result<()> {
         for server in servers {
             let Server {
                 state,
-
                 parameters:
                     Parameters {
                         name,
-
                         version,
-
                         port,
-
                         authentication,
-
                         tls,
                     },
                 ..

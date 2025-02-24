@@ -2,6 +2,7 @@
 
 pub mod cli;
 pub mod command;
+pub mod invite;
 pub mod labels;
 pub mod mayo;
 pub mod parameters;

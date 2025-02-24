@@ -1,3 +1,4 @@
+use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
 
@@ -17,4 +18,19 @@ pub enum Command {
 
     /// Update a server
     Update,
+
+    /// Manage server invites
+    Invite(Invite),
+}
+
+#[derive(Args)]
+pub struct Invite {
+    #[command(subcommand)]
+    pub command: InviteCommand,
+}
+
+#[derive(Subcommand)]
+pub enum InviteCommand {
+    /// Create an invite
+    Create,
 }
