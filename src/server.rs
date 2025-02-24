@@ -2,6 +2,7 @@ use crate::labels::*;
 use crate::parameters::Parameters;
 
 use std::cmp::Ordering;
+use std::fmt;
 
 use bollard::models::ContainerSummary;
 
@@ -15,6 +16,12 @@ pub struct Server {
     pub state: String,
 
     pub parameters: Parameters,
+}
+
+impl fmt::Display for Server {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.parameters.name.fmt(f)
+    }
 }
 
 impl Eq for Server {

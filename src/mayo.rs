@@ -5,14 +5,13 @@ use crate::server::Server;
 use crate::versioning;
 
 use std::collections::HashMap;
+use std::time::SystemTime;
 
 use anyhow::*;
 
 use bollard::Docker;
 use bollard::container;
-use bollard::container::CreateContainerOptions;
-use bollard::container::ListContainersOptions;
-use bollard::container::StartContainerOptions;
+use bollard::container::*;
 use bollard::image::CreateImageOptions;
 use bollard::image::ListImagesOptions;
 use bollard::models::*;
@@ -215,7 +214,7 @@ impl Mayo {
         }
     }
 
-    pub async fn create_server(&self, parameters: Parameters) -> Result<String> {
+    pub async fn create_server(&self, parameters: &Parameters) -> Result<String> {
         let image_id = self
             //
             .version_to_image(&parameters.version)
@@ -261,7 +260,7 @@ impl Mayo {
             format!("MAYO_DATA_PATH={MAYO_DATA_PATH}"),
         ];
 
-        if let Some((crt, key)) = tls.into_inner() {
+        if let Some((crt, key)) = tls.as_inner() {
             env.extend_from_slice(&[
                 //
                 format!("MAYO_TLS_CRT={crt}"),
@@ -343,6 +342,82 @@ impl Mayo {
             .context("failed to start the container")?;
 
         Ok(id)
+    }
+
+    pub async fn update_server(&self, server: Server, version: Version) -> Result<()> {
+        self.docker
+            //
+            .stop_container(&server.id, None)
+            //
+            .await
+            //
+            .context("failed to stop the container")?;
+
+        let mut parameters = server.parameters;
+
+        let old_version = std::mem::replace(&mut parameters.version, version);
+
+        let result: Result<()> = try {
+            let current_timestamp = SystemTime::now()
+                //
+                .duration_since(std::time::UNIX_EPOCH)
+                //
+                .unwrap()
+                //
+                .as_secs();
+
+            let name = format!(
+                //
+                "mayo-{}-old-{}",
+                //
+                parameters.name,
+                //
+                current_timestamp
+            );
+
+            self.docker
+                //
+                .rename_container(&server.id, RenameContainerOptions { name })
+                //
+                .await
+                //
+                .context("failed to rename the existing container")?;
+
+            self.create_server(&parameters)
+                //
+                .await
+                //
+                .context("failed to create and start a new container")?;
+        };
+
+        if let Err(e) = result {
+            self.docker
+                //
+                .start_container::<String>(&server.id, None)
+                //
+                .await
+                //
+                .context(e)
+                //
+                .context("failed to restart the existing container")?;
+        } else {
+            self.docker
+                //
+                .remove_container(&server.id, None)
+                //
+                .await
+                //
+                .context("failed to remove the old container")?;
+        }
+
+        println!(
+            //
+            "Updated {} from {} to {} 🎉",
+            //
+            parameters.name, old_version, parameters.version
+        );
+
+        Ok(())
     }
 
     pub async fn list_servers(&self) -> Result<Vec<Server>> {

@@ -332,7 +332,7 @@ impl Tls {
         Ok(Some(result))
     }
 
-    pub fn into_inner(self) -> Option<(String, String)> {
-        self.0
+    pub fn as_inner(&self) -> Option<&(String, String)> {
+        self.0.as_ref()
     }
 }

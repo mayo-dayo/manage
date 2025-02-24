@@ -12,7 +12,7 @@ pub async fn create() -> Result<()> {
 
     let container_id = mayo
         //
-        .create_server(parameters)
+        .create_server(&parameters)
         //
         .await
         //

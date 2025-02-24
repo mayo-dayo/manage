@@ -14,5 +14,7 @@ async fn main() -> Result<()> {
         Command::Ls => ls::ls().await,
 
         Command::Create => create::create().await,
+
+        Command::Update => update::update().await,
     }
 }

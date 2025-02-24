@@ -1,3 +1,5 @@
+#![feature(try_blocks)]
+
 pub mod cli;
 pub mod command;
 pub mod labels;

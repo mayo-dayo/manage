@@ -14,4 +14,7 @@ pub enum Command {
 
     /// List servers
     Ls,
+
+    /// Update a server
+    Update,
 }
