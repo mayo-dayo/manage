@@ -14,11 +14,20 @@ where
 }
 
 fn is_compatible_app_version(version: &Version) -> bool {
-    VersionReq::parse(">=0.3.0, <0.5.0")
-        //
-        .expect("should be able to parse the app version requirement")
-        //
-        .matches(version)
+    // ^0.4
+    const COMPARATOR: Comparator = Comparator {
+        op: Op::Caret,
+
+        major: 0,
+
+        minor: Some(4),
+
+        patch: None,
+
+        pre: Prerelease::EMPTY,
+    };
+
+    COMPARATOR.matches(version)
 }
 
 pub fn tags_to_compatible_app_versions<I, T>(tags: I) -> impl Iterator<Item = Version>
