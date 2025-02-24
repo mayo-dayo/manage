@@ -63,11 +63,11 @@ pub async fn get_latest_compatible_app_version() -> Result<Version> {
 }
 
 pub fn current_cli_version() -> Version {
-    // 0.1.3
+    // 0.1.4
     Version {
         major: 0,
         minor: 1,
-        patch: 3,
+        patch: 4,
         pre: Prerelease::EMPTY,
         build: BuildMetadata::EMPTY,
     }
